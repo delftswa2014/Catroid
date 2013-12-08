@@ -88,7 +88,7 @@ public class Look extends Image {
 		this.addListener(new BroadcastListener() {
 			@Override
 			public void handleBroadcastEvent(BroadcastEvent event, String broadcastMessage) {
-				doHandleBroadcastEvent(broadcastMessage);
+				doHandleBroadcastEvent(event, broadcastMessage);
 			}
 
 			@Override
@@ -148,7 +148,7 @@ public class Look extends Image {
 		}
 	}
 
-	public void doHandleBroadcastEvent(String broadcastMessage) {
+	public void doHandleBroadcastEvent(BroadcastEvent event, String broadcastMessage) {
 		if (broadcastSequenceMap.containsKey(broadcastMessage)) {
 			for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
 				if (action.getActor() == null) {
@@ -160,10 +160,15 @@ public class Look extends Image {
 		}
 
 		if (broadcastWaitSequenceMap.containsKey(broadcastMessage)) {
-			ArrayList<SequenceAction> arrayList = broadcastWaitSequenceMap.get(broadcastMessage);
-			SequenceAction sequenceAction = arrayList.get(arrayList.size() - 1);
-			Array<Action> actions = sequenceAction.getActions();
-			actions.get(actions.size - 1).act(1.0f);
+			ArrayList<SequenceAction> actionList = broadcastWaitSequenceMap.get(broadcastMessage);
+			for (SequenceAction action : actionList) {
+				event.raiseNumberOfFinishedReceivers();
+				Array<Action> actions = action.getActions();
+				BroadcastNotifyAction notifyAction = (BroadcastNotifyAction) actions.get(actions.size - 1);
+				notifyAction.act(1.0f);
+			}
+
+			broadcastWaitSequenceMap.remove(broadcastMessage);
 		}
 	}
 
@@ -171,23 +176,34 @@ public class Look extends Image {
 		if (broadcastSequenceMap.containsKey(broadcastMessage)) {
 			if (!broadcastWaitSequenceMap.containsKey(broadcastMessage)) {
 				ArrayList<SequenceAction> actionList = new ArrayList<SequenceAction>();
-				for (SequenceAction broadcastAction : broadcastSequenceMap.get(broadcastMessage)) {
+				for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
 					event.raiseNumberOfReceivers();
-					SequenceAction broadcastWaitAction = ExtendedActions.sequence(broadcastAction,
+					SequenceAction broadcastWaitAction = ExtendedActions.sequence(action,
 							ExtendedActions.broadcastNotify(event));
 					actionList.add(broadcastWaitAction);
 					addAction(broadcastWaitAction);
 				}
 				broadcastWaitSequenceMap.put(broadcastMessage, actionList);
 			} else {
-				ArrayList<SequenceAction> actionList = broadcastWaitSequenceMap.get(broadcastMessage);
-				for (SequenceAction action : actionList) {
-					event.raiseNumberOfReceivers();
+				for (SequenceAction action : broadcastWaitSequenceMap.get(broadcastMessage)) {
 					Array<Action> actions = action.getActions();
-					BroadcastNotifyAction notifyAction = (BroadcastNotifyAction) actions.get(actions.size - 1);
-					notifyAction.setEvent(event);
+					actions.get(actions.size - 1).act(1.0f);
 					actionsToRestart.add(action);
 				}
+
+				broadcastWaitSequenceMap.clear();
+
+				ArrayList<SequenceAction> actionList = new ArrayList<SequenceAction>();
+
+				for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
+					event.raiseNumberOfReceivers();
+					SequenceAction broadcastWaitAction = ExtendedActions.sequence(action,
+							ExtendedActions.broadcastNotify(event));
+					actionList.add(broadcastWaitAction);
+					addAction(broadcastWaitAction);
+				}
+
+				broadcastWaitSequenceMap.put(broadcastMessage, actionList);
 			}
 		}
 	}
