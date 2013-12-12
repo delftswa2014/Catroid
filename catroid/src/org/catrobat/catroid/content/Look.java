@@ -40,6 +40,7 @@ import com.badlogic.gdx.utils.Array;
 import org.catrobat.catroid.common.LookData;
 import org.catrobat.catroid.content.actions.BroadcastNotifyAction;
 import org.catrobat.catroid.content.actions.ExtendedActions;
+import org.catrobat.catroid.content.bricks.BroadcastWaitBrick;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,6 +62,7 @@ public class Look extends Image {
 	private ArrayList<Action> actionsToRestart = new ArrayList<Action>();
 	private boolean allActionAreFinished = false;
 	private BrightnessContrastShader shader;
+	private BroadcastWaitBrick currentBroadcastWaitBrick;
 
 	public Look(Sprite sprite) {
 		this.sprite = sprite;
@@ -88,7 +90,7 @@ public class Look extends Image {
 		this.addListener(new BroadcastListener() {
 			@Override
 			public void handleBroadcastEvent(BroadcastEvent event, String broadcastMessage) {
-				doHandleBroadcastEvent(event, broadcastMessage);
+				doHandleBroadcastEvent(broadcastMessage);
 			}
 
 			@Override
@@ -148,7 +150,7 @@ public class Look extends Image {
 		}
 	}
 
-	public void doHandleBroadcastEvent(BroadcastEvent event, String broadcastMessage) {
+	public void doHandleBroadcastEvent(String broadcastMessage) {
 		if (broadcastSequenceMap.containsKey(broadcastMessage)) {
 			for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
 				if (action.getActor() == null) {
@@ -160,14 +162,12 @@ public class Look extends Image {
 		}
 
 		if (broadcastWaitSequenceMap.containsKey(broadcastMessage)) {
-			ArrayList<SequenceAction> actionList = broadcastWaitSequenceMap.get(broadcastMessage);
-			for (SequenceAction action : actionList) {
-				event.raiseNumberOfFinishedReceivers();
+			for (SequenceAction action : broadcastWaitSequenceMap.get(broadcastMessage)) {
 				Array<Action> actions = action.getActions();
 				BroadcastNotifyAction notifyAction = (BroadcastNotifyAction) actions.get(actions.size - 1);
-				notifyAction.act(1.0f);
+				notifyAction.getEvent().setRun(true);
+				notifyAction.getEvent().resetNumberOfReceivers();
 			}
-
 			broadcastWaitSequenceMap.remove(broadcastMessage);
 		}
 	}
@@ -185,25 +185,23 @@ public class Look extends Image {
 				}
 				broadcastWaitSequenceMap.put(broadcastMessage, actionList);
 			} else {
-				for (SequenceAction action : broadcastWaitSequenceMap.get(broadcastMessage)) {
-					Array<Action> actions = action.getActions();
-					actions.get(actions.size - 1).act(1.0f);
-					actionsToRestart.add(action);
+				if (this.currentBroadcastWaitBrick == null
+						|| event.getBroadcastWaitBrick() != this.currentBroadcastWaitBrick) {
+					this.currentBroadcastWaitBrick = event.getBroadcastWaitBrick();
+					for (SequenceAction action : broadcastWaitSequenceMap.get(broadcastMessage)) {
+						Array<Action> actions = action.getActions();
+						BroadcastNotifyAction notifyAction = (BroadcastNotifyAction) actions.get(actions.size - 1);
+						notifyAction.getEvent().setRun(true);
+						notifyAction.getEvent().resetNumberOfReceivers();
+						notifyAction.setEvent(event);
+						event.raiseNumberOfReceivers();
+						actionsToRestart.add(action);
+					}
+				} else {
+					for (SequenceAction action : broadcastWaitSequenceMap.get(broadcastMessage)) {
+						actionsToRestart.add(action);
+					}
 				}
-
-				broadcastWaitSequenceMap.clear();
-
-				ArrayList<SequenceAction> actionList = new ArrayList<SequenceAction>();
-
-				for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
-					event.raiseNumberOfReceivers();
-					SequenceAction broadcastWaitAction = ExtendedActions.sequence(action,
-							ExtendedActions.broadcastNotify(event));
-					actionList.add(broadcastWaitAction);
-					addAction(broadcastWaitAction);
-				}
-
-				broadcastWaitSequenceMap.put(broadcastMessage, actionList);
 			}
 		}
 	}

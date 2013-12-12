@@ -24,12 +24,14 @@ package org.catrobat.catroid.content;
 
 import com.badlogic.gdx.scenes.scene2d.Event;
 
+import org.catrobat.catroid.content.bricks.BroadcastWaitBrick;
+
 public class BroadcastEvent extends Event {
 
 	private BroadcastType type;
 	private String broadcastMessage;
 	private Sprite senderSprite;
-	private BroadcastScript waitScript;
+	private BroadcastWaitBrick broadcastWaitBrick;
 	private boolean run = true;
 	private int numberOfReceivers = 0;
 	private int numberOfFinishedReceivers = 0;
@@ -50,12 +52,12 @@ public class BroadcastEvent extends Event {
 		this.broadcastMessage = broadcastMessage;
 	}
 
-	public BroadcastScript getWaitScript() {
-		return waitScript;
+	public BroadcastWaitBrick getBroadcastWaitBrick() {
+		return broadcastWaitBrick;
 	}
 
-	public void setWaitScript(BroadcastScript waitScript) {
-		this.waitScript = waitScript;
+	public void setBroadcastWaitBrick(BroadcastWaitBrick broadcastWaitBrick) {
+		this.broadcastWaitBrick = broadcastWaitBrick;
 	}
 
 	public BroadcastType getType() {
@@ -82,12 +84,16 @@ public class BroadcastEvent extends Event {
 		this.numberOfReceivers++;
 	}
 
+	public void resetNumberOfReceivers() {
+		this.numberOfReceivers = 0;
+	}
+
 	public void raiseNumberOfFinishedReceivers() {
 		this.numberOfFinishedReceivers++;
 	}
 
 	public boolean checkIfAllReceiversHaveFinished() {
-		return numberOfReceivers == numberOfFinishedReceivers;
+		return numberOfReceivers <= numberOfFinishedReceivers;
 	}
 
 	public static enum BroadcastType {
