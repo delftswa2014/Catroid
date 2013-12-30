@@ -32,10 +32,14 @@ public class BroadcastNotifyAction extends Action {
 
 	@Override
 	public boolean act(float delta) {
+
 		event.raiseNumberOfFinishedReceivers();
 		if (event.checkIfAllReceiversHaveFinished()) {
+			event.resetNumberOfReceivers();
+			event.resetNumberOfFinishedReceivers();
 			event.setRun(true);
 		}
+
 		return true;
 	}
 

@@ -88,6 +88,10 @@ public class BroadcastEvent extends Event {
 		this.numberOfReceivers = 0;
 	}
 
+	public void resetNumberOfFinishedReceivers() {
+		this.numberOfFinishedReceivers = 0;
+	}
+
 	public void raiseNumberOfFinishedReceivers() {
 		this.numberOfFinishedReceivers++;
 	}
