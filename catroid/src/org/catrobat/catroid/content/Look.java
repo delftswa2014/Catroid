@@ -37,11 +37,12 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 
+import org.catrobat.catroid.common.BroadcastSequenceMap;
+import org.catrobat.catroid.common.BroadcastWaitSequenceMap;
 import org.catrobat.catroid.common.LookData;
 import org.catrobat.catroid.content.actions.ExtendedActions;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 
 public class Look extends Image {
@@ -54,13 +55,9 @@ public class Look extends Image {
 	protected float brightness = 1f;
 	public boolean visible = true;
 	protected Pixmap pixmap;
-	private HashMap<String, ArrayList<SequenceAction>> broadcastSequenceMap = new HashMap<String, ArrayList<SequenceAction>>();
-	private HashMap<String, ArrayList<SequenceAction>> broadcastWaitSequenceMap = new HashMap<String, ArrayList<SequenceAction>>();
 	private ParallelAction whenParallelAction;
-	private ArrayList<Action> actionsToRestart = new ArrayList<Action>();
 	private boolean allActionAreFinished = false;
 	private BrightnessContrastShader shader;
-	private BroadcastEvent currentBroadcastEvent = null;
 
 	public Look(Sprite sprite) {
 		this.sprite = sprite;
@@ -104,12 +101,8 @@ public class Look extends Image {
 		cloneLook.alpha = this.alpha;
 		cloneLook.brightness = this.brightness;
 		cloneLook.visible = this.visible;
-		cloneLook.broadcastSequenceMap = new HashMap<String, ArrayList<SequenceAction>>(this.broadcastSequenceMap);
-		cloneLook.broadcastWaitSequenceMap = new HashMap<String, ArrayList<SequenceAction>>(
-				this.broadcastWaitSequenceMap);
 		cloneLook.whenParallelAction = null;
 		cloneLook.allActionAreFinished = this.allActionAreFinished;
-		cloneLook.actionsToRestart = new ArrayList<Action>();
 
 		return cloneLook;
 	}
@@ -139,87 +132,53 @@ public class Look extends Image {
 	}
 
 	public void putBroadcastSequenceAction(String broadcastMessage, SequenceAction action) {
-		if (broadcastSequenceMap.containsKey(broadcastMessage)) {
-			broadcastSequenceMap.get(broadcastMessage).add(action);
+		if (BroadcastSequenceMap.containsKey(broadcastMessage)) {
+			BroadcastSequenceMap.get(broadcastMessage).add(action);
 		} else {
 			ArrayList<SequenceAction> actionList = new ArrayList<SequenceAction>();
 			actionList.add(action);
-			broadcastSequenceMap.put(broadcastMessage, actionList);
+			BroadcastSequenceMap.put(broadcastMessage, actionList);
 		}
 	}
 
 	public void doHandleBroadcastEvent(String broadcastMessage) {
-		if (!broadcastSequenceMap.containsKey(broadcastMessage)) {
+		if (!BroadcastSequenceMap.containsKey(broadcastMessage)) {
 			return;
 		}
 
-		for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
-			if (action.getActor() == null) {
-				addAction(action);
-			} else {
-				actionsToRestart.add(action);
-			}
+		for (SequenceAction action : BroadcastSequenceMap.get(broadcastMessage)) {
+			addOrRestartAction(action);
 		}
 
-		if (broadcastWaitSequenceMap.containsKey(broadcastMessage)) {
-			for (SequenceAction action : broadcastWaitSequenceMap.get(broadcastMessage)) {
-				if (action.getActor() == null) {
-					addAction(action);
-				} else {
-					actionsToRestart.add(action);
-				}
+		if (BroadcastWaitSequenceMap.containsKey(broadcastMessage)) {
+			for (SequenceAction action : BroadcastWaitSequenceMap.get(broadcastMessage)) {
+				addOrRestartAction(action);
 			}
-
-			this.currentBroadcastEvent.resetNumberOfReceivers();
-			this.currentBroadcastEvent.resetNumberOfFinishedReceivers();
-			this.currentBroadcastEvent.setRun(true);
-			this.currentBroadcastEvent = null;
-
-			broadcastWaitSequenceMap.remove(broadcastMessage);
+			BroadcastWaitSequenceMap.currentBroadcastEvent.resetEventAndResumeScript();
 		}
 	}
 
 	public void doHandleBroadcastFromWaiterEvent(BroadcastEvent event, String broadcastMessage) {
-		if (!broadcastSequenceMap.containsKey(broadcastMessage)) {
+		if (!BroadcastSequenceMap.containsKey(broadcastMessage)) {
 			return;
 		}
 
-		if (!broadcastWaitSequenceMap.containsKey(broadcastMessage)) {
-			this.currentBroadcastEvent = event;
-			ArrayList<SequenceAction> actionList = new ArrayList<SequenceAction>();
-			for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
-				event.raiseNumberOfReceivers();
-				SequenceAction broadcastWaitAction = ExtendedActions.sequence(action,
-						ExtendedActions.broadcastNotify(event));
-				actionList.add(broadcastWaitAction);
-
-				addAction(broadcastWaitAction);
-				actionsToRestart.add(broadcastWaitAction);
-			}
-			broadcastWaitSequenceMap.put(broadcastMessage, actionList);
+		if (!BroadcastWaitSequenceMap.containsKey(broadcastMessage)) {
+			BroadcastWaitSequenceMap.currentBroadcastEvent = event;
+			addBroadcastMessageToBroadcastWaitSequenceMap(event, broadcastMessage);
 		} else {
-			if (this.currentBroadcastEvent == event && this.currentBroadcastEvent != null) {
-				for (SequenceAction action : broadcastWaitSequenceMap.get(broadcastMessage)) {
-					// can happen, that a short is run 2x and a long 1x but counting +3
-					actionsToRestart.add(action);
+			if (BroadcastWaitSequenceMap.currentBroadcastEvent == event
+					&& BroadcastWaitSequenceMap.currentBroadcastEvent != null) {
+				for (SequenceAction action : BroadcastWaitSequenceMap.get(broadcastMessage)) {
+					BroadcastWaitSequenceMap.currentBroadcastEvent.resetNumberOfFinishedReceivers();
+					addOrRestartAction(action);
 				}
 			} else {
-				this.currentBroadcastEvent.resetNumberOfReceivers();
-				this.currentBroadcastEvent.resetNumberOfFinishedReceivers();
-				this.currentBroadcastEvent.setRun(true);
-
-				this.currentBroadcastEvent = event;
-
-				ArrayList<SequenceAction> actionList = new ArrayList<SequenceAction>();
-				for (SequenceAction action : broadcastSequenceMap.get(broadcastMessage)) {
-					event.raiseNumberOfReceivers();
-					SequenceAction broadcastWaitAction = ExtendedActions.sequence(action,
-							ExtendedActions.broadcastNotify(event));
-					actionList.add(broadcastWaitAction);
-					addAction(broadcastWaitAction);
-					actionsToRestart.add(broadcastWaitAction);
+				if (BroadcastWaitSequenceMap.currentBroadcastEvent != null) {
+					BroadcastWaitSequenceMap.currentBroadcastEvent.resetEventAndResumeScript();
 				}
-				broadcastWaitSequenceMap.put(broadcastMessage, actionList);
+				BroadcastWaitSequenceMap.currentBroadcastEvent = event;
+				addBroadcastMessageToBroadcastWaitSequenceMap(event, broadcastMessage);
 			}
 		}
 	}
@@ -248,12 +207,14 @@ public class Look extends Image {
 		Array<Action> actions = getActions();
 		allActionAreFinished = false;
 		int finishedCount = 0;
+
+		for (Iterator<Action> iterator = BroadcastSequenceMap.actionsToRestart.iterator(); iterator.hasNext();) {
+			Action actionToRestart = iterator.next();
+			actionToRestart.restart();
+			iterator.remove();
+		}
+
 		for (int i = 0, n = actions.size; i < n; i++) {
-			for (Iterator<Action> iterator = actionsToRestart.iterator(); iterator.hasNext();) {
-				Action actionToRestart = iterator.next();
-				actionToRestart.restart();
-				iterator.remove();
-			}
 			Action action = actions.get(i);
 			if (action.act(delta)) {
 				finishedCount++;
@@ -437,6 +398,30 @@ public class Look extends Image {
 
 	public void changeBrightnessInUserInterfaceDimensionUnit(float changePercent) {
 		setBrightnessInUserInterfaceDimensionUnit(getBrightnessInUserInterfaceDimensionUnit() + changePercent);
+	}
+
+	private void addOrRestartAction(Action action) {
+		if (action.getActor() == null) {
+			if (!getActions().contains(action, false)) {
+				addAction(action);
+			}
+		} else {
+			if (!BroadcastSequenceMap.actionsToRestart.contains(action)) {
+				BroadcastSequenceMap.actionsToRestart.add(action);
+			}
+		}
+	}
+
+	private void addBroadcastMessageToBroadcastWaitSequenceMap(BroadcastEvent event, String broadcastMessage) {
+		ArrayList<SequenceAction> actionList = new ArrayList<SequenceAction>();
+		for (SequenceAction action : BroadcastSequenceMap.get(broadcastMessage)) {
+			event.raiseNumberOfReceivers();
+			SequenceAction broadcastWaitAction = ExtendedActions.sequence(action,
+					ExtendedActions.broadcastNotify(event));
+			actionList.add(broadcastWaitAction);
+			addOrRestartAction(broadcastWaitAction);
+		}
+		BroadcastWaitSequenceMap.put(broadcastMessage, actionList);
 	}
 
 	private class BrightnessContrastShader extends ShaderProgram {

@@ -20,30 +20,35 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.catrobat.catroid.content.actions;
+package org.catrobat.catroid.common;
 
 import com.badlogic.gdx.scenes.scene2d.Action;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 
-import org.catrobat.catroid.content.BroadcastEvent;
+import java.util.ArrayList;
+import java.util.HashMap;
 
-public class BroadcastNotifyAction extends Action {
+public final class BroadcastSequenceMap {
+	private static HashMap<String, ArrayList<SequenceAction>> broadcastSequenceMap = new HashMap<String, ArrayList<SequenceAction>>();
+	public static ArrayList<Action> actionsToRestart = new ArrayList<Action>();
 
-	private BroadcastEvent event;
-
-	@Override
-	public boolean act(float delta) {
-		event.raiseNumberOfFinishedReceivers();
-		if (event.checkIfAllReceiversHaveFinished()) {
-			event.resetEventAndResumeScript();
-		}
-		return true;
+	private BroadcastSequenceMap() {
+		throw new AssertionError();
 	}
 
-	public BroadcastEvent getEvent() {
-		return this.event;
+	public static boolean containsKey(String key) {
+		return broadcastSequenceMap.containsKey(key);
 	}
 
-	public void setEvent(BroadcastEvent event) {
-		this.event = event;
+	public static ArrayList<SequenceAction> get(String key) {
+		return broadcastSequenceMap.get(key);
+	}
+
+	public static ArrayList<SequenceAction> put(String key, ArrayList<SequenceAction> value) {
+		return broadcastSequenceMap.put(key, value);
+	}
+
+	public static void clear() {
+		broadcastSequenceMap.clear();
 	}
 }
