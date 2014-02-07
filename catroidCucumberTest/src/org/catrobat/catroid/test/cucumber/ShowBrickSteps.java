@@ -20,24 +20,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.catrobat.catroid.test.cucumber.util;
+package org.catrobat.catroid.test.cucumber;
 
-import com.badlogic.gdx.scenes.scene2d.Action;
+import android.test.AndroidTestCase;
 
-public final class CallbackAction extends Action {
-	private final transient CallbackBrick.BrickCallback callback;
-	private boolean runOnce = true;
+import cucumber.api.java.en.Given;
 
-	public CallbackAction(CallbackBrick.BrickCallback callback) {
-		this.callback = callback;
+import org.catrobat.catroid.content.Script;
+import org.catrobat.catroid.content.Sprite;
+import org.catrobat.catroid.content.bricks.ShowBrick;
+
+//CHECKSTYLE DISABLE MethodNameCheck FOR 1000 LINES
+public class ShowBrickSteps extends AndroidTestCase {
+	@Given("^'Object' (is|is not) visible$")
+	public void object_is_visible(String visible) {
+		Sprite object = (Sprite) Cucumber.get(Cucumber.KEY_CURRENT_OBJECT);
+		object.look.setVisible(visible.equals("is"));
 	}
 
-	@Override
-	public boolean act(float delta) {
-		if (runOnce) {
-			runOnce = false;
-			callback.onCallback();
-		}
-		return true;
+	@Given("^this script has a show brick$")
+	public void this_script_has_a_show_brick() {
+		Sprite object = (Sprite) Cucumber.get(Cucumber.KEY_CURRENT_OBJECT);
+		Script script = (Script) Cucumber.get(Cucumber.KEY_CURRENT_SCRIPT);
+
+		ShowBrick showBrick = new ShowBrick(object);
+		script.addBrick(showBrick);
 	}
 }

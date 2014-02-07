@@ -18,39 +18,23 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-Feature: Print brick
+Feature: Set y brick
 
-  A Print brick prints a given text on the screen.
+  A brick setting the y coordinate of an Object
 
   Background:
     Given I have a Program
     And this program has an Object 'Object'
 
-  Scenario: A Print brick prints one line
+  Scenario Outline: Set y coordinate of an Object
     Given 'Object' has a Start script
-    And this script has a Print brick with 'Hello, world!'
+    And this script has a Set y to <yPosition> brick
     When I start the program
     And I wait until the program has stopped
-    Then I should see the printed output 'Hello, world!'
+    Then 'Object' should be at y position <yPosition>
 
-  Scenario: A Print brick prints two lines
-    Given 'Object' has a Start script
-    And this script has a Print brick with
-      """
-      Hello,
-      world!
-      """
-    When I start the program
-    And I wait until the program has stopped
-    Then I should see the printed output
-      """
-      Hello,
-      world!
-      """
-
-  Scenario: A Print brick with an empty text
-    Given 'Object' has a Start script
-    And this script has a Print brick with ''
-    When I start the program
-    And I wait until the program has stopped
-    Then I should see no printed output
+    Examples:
+      | yPosition   |
+      | 100         |
+      | 2147483647  |
+      | -2147483648 |

@@ -1,6 +1,6 @@
 /**
  * Catroid: An on-device visual programming system for Android devices
- * Copyright (C) 2010-2013 The Catrobat Team
+ * Copyright (C) 2010-2014 The Catrobat Team
  * (<http://developer.catrobat.org/credits>)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,9 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-// Here you can configure which feature or feature-subfolder to test.
-@CucumberOptions(features = "features/bricks",
-				 format = {"pretty", "html:/sdcard/cucumber/report"})
+@CucumberOptions()
 public final class Cucumber {
 	public static final String KEY_SOLO = "KEY_SOLO";
 	public static final String KEY_PROJECT = "KEY_PROJECT";
@@ -42,6 +40,8 @@ public final class Cucumber {
 	public static final String KEY_START_TIME_NANO = "KEY_START_TIME_NANO";
 	public static final String KEY_STOP_TIME_NANO = "KEY_STOP_TIME_NANO";
 	public static final String KEY_LOOP_BEGIN_BRICK = "KEY_LOOP_BEGIN_BRICK";
+	public static final String KEY_IF_LOGIC_BEGIN_BRICK = "KEY_IF_LOGIC_BEGIN_BRICK";
+
 	// The global state allows glue-class objects to share values with each other.
 	private static final Map<String, Object> GLOBAL_STATE = Collections.synchronizedMap(new HashMap<String, Object>());
 

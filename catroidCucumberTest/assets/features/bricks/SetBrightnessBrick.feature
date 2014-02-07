@@ -18,39 +18,22 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-Feature: Print brick
+Feature: Set brightness brick
 
-  A Print brick prints a given text on the screen.
+  A brick setting the brightness of an Object.
 
   Background:
     Given I have a Program
     And this program has an Object 'Object'
 
-  Scenario: A Print brick prints one line
+  Scenario Outline: Hide Object
     Given 'Object' has a Start script
-    And this script has a Print brick with 'Hello, world!'
+    And this script has a Set brightness <brightness> brick
     When I start the program
-    And I wait until the program has stopped
-    Then I should see the printed output 'Hello, world!'
+    And I wait for at least 200 milliseconds
+    Then 'Object' should have brightness <expected>
 
-  Scenario: A Print brick prints two lines
-    Given 'Object' has a Start script
-    And this script has a Print brick with
-      """
-      Hello,
-      world!
-      """
-    When I start the program
-    And I wait until the program has stopped
-    Then I should see the printed output
-      """
-      Hello,
-      world!
-      """
-
-  Scenario: A Print brick with an empty text
-    Given 'Object' has a Start script
-    And this script has a Print brick with ''
-    When I start the program
-    And I wait until the program has stopped
-    Then I should see no printed output
+    Examples:
+      | brightness | expected |
+      | 50.1       | 50.1     |
+      | -50.1      | 0        |

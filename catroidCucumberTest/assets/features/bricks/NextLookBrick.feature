@@ -18,39 +18,24 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-Feature: Print brick
+Feature: Next look brick
 
-  A Print brick prints a given text on the screen.
+  A brick setting the next look of an Object
 
   Background:
     Given I have a Program
     And this program has an Object 'Object'
+    And I add a look 'testImage'
 
-  Scenario: A Print brick prints one line
+  Scenario Outline: Set the next look of an Object
     Given 'Object' has a Start script
-    And this script has a Print brick with 'Hello, world!'
+    And this script has a Set look <firstLook> brick
+    And this script has a Set next look brick
     When I start the program
-    And I wait until the program has stopped
-    Then I should see the printed output 'Hello, world!'
+    And I wait for at least 200 milliseconds
+    Then 'Object' should have the look <secondLook> set
 
-  Scenario: A Print brick prints two lines
-    Given 'Object' has a Start script
-    And this script has a Print brick with
-      """
-      Hello,
-      world!
-      """
-    When I start the program
-    And I wait until the program has stopped
-    Then I should see the printed output
-      """
-      Hello,
-      world!
-      """
-
-  Scenario: A Print brick with an empty text
-    Given 'Object' has a Start script
-    And this script has a Print brick with ''
-    When I start the program
-    And I wait until the program has stopped
-    Then I should see no printed output
+    Examples:
+      | firstLook   | secondLook  |
+      | 'Object'    | 'testImage' |
+      | 'testImage' | 'Object'    |

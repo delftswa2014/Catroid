@@ -25,41 +25,21 @@ package org.catrobat.catroid.test.cucumber.util;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 
 import org.catrobat.catroid.content.Sprite;
-import org.catrobat.catroid.content.bricks.Brick;
-import org.catrobat.catroid.content.bricks.SpeakBrick;
 
-import java.io.OutputStream;
 import java.util.List;
 
-public class PrintBrick extends SpeakBrick {
+public final class ScriptStartCallbackBrick extends CallbackBrick {
 	private static final long serialVersionUID = 1L;
-	private String text;
-	private OutputStream outputStream;
+	private final transient BrickCallback callback;
 
-	public PrintBrick(Sprite sprite, String text) {
-		this.outputStream = System.out;
+	public ScriptStartCallbackBrick(Sprite sprite, BrickCallback callback) {
 		this.sprite = sprite;
-		this.text = text;
-	}
-
-	public PrintBrick() {
-		this.outputStream = System.out;
-	}
-
-	public void setOutputStream(OutputStream outputStream) {
-		this.outputStream = outputStream;
-	}
-
-	@Override
-	public Brick clone() {
-		PrintBrick brick = new PrintBrick(sprite, text);
-		brick.outputStream = this.outputStream;
-		return brick;
+		this.callback = callback;
 	}
 
 	@Override
 	public List<SequenceAction> addActionToSequence(SequenceAction sequence) {
-		sequence.addAction(new PrintAction(text, outputStream));
+		sequence.addAction(new CallbackAction(callback));
 		return null;
 	}
 }
